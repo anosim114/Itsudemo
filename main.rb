@@ -1,16 +1,20 @@
 require "socket"
 
-item_list = []
+item_list = [
+    "Itomori.ogg",
+    "Lemon.ogg",
+    "A Town With An Ocean View.ogg",
+    "Girl who lept through time.ogg",
+    "Merry.ogg",
+    "Flower Dance.ogg"]
 
 server = TCPServer.new 5678
 
-session = server.accept
-request = session.gets
-puts request
-puts "new session"
+@connections = []
 
+session = server.accept
+@connections.push({"session": session, "i": 6})
 session.print "HTTP/1.1 200\r\n"
-# session.print "Content-Type: audio/ogg\r\n"
 session.print "content-type: audio/ogg\r\n"
 session.print "cache-control: no-cache, no-store\r\n"
 session.print "expires: Mon, 26 Jul 1997 05:00:00 GMT\r\n"
@@ -34,12 +38,49 @@ while true do
     end
 
     open(name) do |file|
-        session.print file.read(packets.delete_at(0))
-        session.print file.read(packets.delete_at(0))
+        # the first two packets in the file are important
+        @connections.each do |s|
+            s[:i] = 0
+        end
         
+        @info_packets = [
+            file.read(packets.delete_at(0)),
+            file.read(packets.delete_at(0))
+        ]
+
+        @info_packets.each do |i|
+            session.print i
+        end
+
+        # have a small cache of 5 seconds to send to the clients
+        @cache = [
+            file.read(packets.delete_at(0)),
+            file.read(packets.delete_at(0)),
+            file.read(packets.delete_at(0)),
+            file.read(packets.delete_at(0)),
+            file.read(packets.delete_at(0))
+        ]
+        
+        @cache.each do |c|
+            session.print(c)
+        end
+
         while packets.length > 0 do
             buffer_size = packets.delete_at(0)
-            session.print file.read(buffer_size)
+            buffer = file.read(buffer_size)
+
+            @cache.push(buffer)
+            @cache.shift()
+
+            # byte 14 is the page sequence number of an ogg pages
+            psn = 14
+            @connections.each do |s|
+                if s[:i] > 0
+                    buffer.setbyte(psn, s[:i])
+                    s[:i] += 1
+                end
+            end
+            session.print buffer
             sleep(1)
         end
     end
