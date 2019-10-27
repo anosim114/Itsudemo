@@ -24,7 +24,7 @@ server = TCPServer.new("0.0.0.0", 8080)
 # start new thread to accept new connections
 Thread.new do
     while session = server.accept do
-        puts "new connection"
+        puts "new connection: #{s}"
 
         # don't want to send data to favicon, sorry firefox
         req = session.gets || ""
@@ -48,8 +48,6 @@ Thread.new do
         last_byte = 0
         @info_packets.each do |i|
             session.print i
-            # get the page sequence number correctly
-            last_byte = i.getbyte(psn)
         end
 
         session.print @cache
@@ -59,7 +57,7 @@ Thread.new do
         # it will be set for the current song on each page
         # as soon as the next song starts
         # it is not necessary anymore and I set it to 0 and skip this connection therefore
-        @connections.push({"session": session, "i": 3})
+        @connections.push(session)
     end
 end
 
@@ -93,12 +91,6 @@ while true do
     # open the file again and start reading one page at the time
     open(name) do |file|
         # the first two packets in the file are important
-
-        # reset the counter for the page sequence part in an ogg page
-        @connections.each do |s|
-            if s[:i] != 0 then s[:i] = 0 end
-        end
-
         # get the first two pages, they will be send to new conections
         # since they contain information of the file
         @info_packets = [
@@ -108,8 +100,8 @@ while true do
 
         # send first two pages to all connections
         @info_packets.each do |buffer|
-            @connections.each do |c|
-                c[:session].print buffer
+            @connections.each do |s|
+                s.print buffer
             end
         end
 
@@ -120,19 +112,12 @@ while true do
 
             @cache = buffer.dup
 
-            @connections.each do |c|
+            @connections.each do |s|
                 Thread.new do
                     begin
-                        if c[:i] > 0
-                            buffer_copy = buffer.dup
-                            c[:i] += 1
-                            c[:session].print buffer_copy
-                        else
-                            c[:session].print buffer
-                        end
+                        s.print buffer
                     rescue
-                        @connections.delete(c)
-                        puts "session closed: #{c}"
+                        puts "session errored: #{s}"
                     end
                 end
             end
