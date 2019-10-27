@@ -1,17 +1,19 @@
 require "socket"
-include Socket::Constants
 
 item_list = [
     # "Jugemo.ogg",
+    "Flower Dance.ogg",
+    "Merry.ogg",
+    "Girl who lept through time.ogg",
     "Lemon.ogg",
     "A Town With An Ocean View.ogg",
-    "Itomori.ogg",
-    "Girl who lept through time.ogg",
-    "Merry.ogg",
-    "Flower Dance.ogg"]
+    "Itomori.ogg"
+]
 
 # byte 14 is the page sequence number of an ogg pages
 psn = 18
+# okay, nice to know, but firefox does not like me to mess with the bytes
+# unless I update the checksum
 
 #start new server
 server = TCPServer.new("0.0.0.0", 8080)
@@ -36,7 +38,6 @@ Thread.new do
         session.print "HTTP/1.1 200\r\n"
         session.print "content-type: audio/ogg\r\n"
         session.print "cache-control: no-cache, no-store\r\n"
-        session.print "expires: Mon, 26 Jul 1997 05:00:00 GMT\r\n"
         session.print "x-content-type-options: nosniff\r\n"
         session.print "server: aaa\r\n"
         session.print "\r\n"
@@ -51,20 +52,14 @@ Thread.new do
             last_byte = i.getbyte(psn)
         end
 
-        # also send one second of cache so that the audio will start playing instantaniously
-        buffer = @cache
-        # set the right page sequence number here and increment it for later
-        buffer.setbyte(psn, last_byte)
-        last_byte += 1;
-
-        session.print buffer
+        session.print @cache
 
         # add new connection to the array
         # :i is the value of the page sequence number
         # it will be set for the current song on each page
         # as soon as the next song starts
         # it is not necessary anymore and I set it to 0 and skip this connection therefore
-        @connections.push({"session": session, "i": last_byte})
+        @connections.push({"session": session, "i": 3})
     end
 end
 
@@ -122,25 +117,22 @@ while true do
         while packets.length > 0 do
             buffer_size = packets.delete_at(0)
             buffer = file.read(buffer_size)
-            @cache = buffer
 
-            puts "header type byte: #{buffer.unpack("AAAAxaxxxxxxxxxxxxC")}"
+            @cache = buffer.dup
 
             @connections.each do |c|
-                orig = buffer.getbyte(psn)
                 Thread.new do
                     begin
                         if c[:i] > 0
-                            buffer.setbyte(psn, c[:i])
-                            # puts "#{orig} becomes #{c[:i]}"
+                            buffer_copy = buffer.dup
                             c[:i] += 1
+                            c[:session].print buffer_copy
                         else
-                            buffer.setbyte(psn, orig)
+                            c[:session].print buffer
                         end
-                        c[:session].print buffer
                     rescue
                         @connections.delete(c)
-                        puts "session closed"
+                        puts "session closed: #{c}"
                     end
                 end
             end
