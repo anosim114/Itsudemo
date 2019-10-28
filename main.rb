@@ -24,7 +24,7 @@ server = TCPServer.new("0.0.0.0", 8080)
 # start new thread to accept new connections
 Thread.new do
     while session = server.accept do
-        puts "new connection: #{s}"
+        puts "new connection: #{session}"
 
         # don't want to send data to favicon, sorry firefox
         req = session.gets || ""
@@ -118,6 +118,8 @@ while true do
                         s.print buffer
                     rescue
                         puts "session errored: #{s}"
+                        s.close
+                        @connections.delete(s)
                     end
                 end
             end
