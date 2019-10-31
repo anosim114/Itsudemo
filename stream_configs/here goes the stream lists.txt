@@ -1,0 +1,8 @@
+basically: 
+
+[
+    "track 1.ogg",
+    "track 2.ogg",
+    "track 3.ogg",
+    "etc.ogg"
+]

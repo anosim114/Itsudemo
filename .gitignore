@@ -1,1 +1,4 @@
 *.ogg
+stream_configs/*.json
+main copy.rb
+connect.rb

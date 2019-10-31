@@ -1,0 +1,18 @@
+{
+    "port": 8080,
+    "base_url": "/stream",
+    "stream_param": "type",
+    "music_location": "./music",
+    "stream_config_location": "./stream_configs/",
+    "default": "piano",
+    "streams": [
+        {
+            "name": "piano",
+            "config": "piano"
+        },
+        {
+            "name": "myname",
+            "config": "myname"
+        }
+    ]
+}
