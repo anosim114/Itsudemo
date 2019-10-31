@@ -1,6 +1,9 @@
-# Itsudemo
+# [Itsudemo](https://jisho.org/search/itsudemo)
 music stream server
 
 ### TODO
 
-- explain how the config file works
+- Explain how the config file works
+- Add stream policy for choosing what to play next
+    - Random
+    - Roundabout

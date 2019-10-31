@@ -81,8 +81,8 @@ Thread.new do
         
         # TODO: info packets
         if success == true
-            session.print "HTTP/1.1 404 NOT FOUND\r\n"
-            session.print "Server: blessing/vItsudemo\r\n"
+            session.print "HTTP/1.1 200 OK\r\n"
+            session.print "Server: blessing/Itsudemo\r\n"
             session.print "Content-Type: audio/ogg\r\n"
             
             session.print "\r\n"
@@ -93,7 +93,10 @@ Thread.new do
             next
         end
         puts "send 404"
-        session.print "HTTP/1.1 404 NOT FOUND\r\n\r\n"
+        session.print "HTTP/1.1 404 NOT FOUND\r\n"
+            session.print "Server: blessing/Itsudemo\r\n"
+            session.print "X-Go-To: https://miona.tk/stream\r\n"
+            session.print "\r\n"
         session.close()
     end
 end
@@ -107,8 +110,6 @@ config["streams"].each do |stream|
             track_list = JSON.parse(File.read(stream_config)) if track_list.length == 0
             name = track_list.delete_at(0)
             file_location = "#{config["music_location"]}/#{name}"
-
-            puts "> #{stream["name"]} playing: #{name}"
 
             file_size = File.size(file_location)
             file = File.read(file_location, file_size)
