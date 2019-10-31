@@ -21,8 +21,6 @@ server = TCPServer.new("0.0.0.0", config["port"])
 Thread.new do
     while session = server.accept do
         puts "\n----- NEW USER -----"
-        # test_uri.each do |uri|
-
         # Note: set 'success' to true, if a stream for req was found
         # else I will send 404
 
@@ -54,7 +52,6 @@ Thread.new do
         success = false
         stream = ""
         if url.path == config["base_url"]
-            # check if the user wants a specific stream
             # check if querys were provided
             if query != nil
                 query.each do |q|
@@ -79,7 +76,6 @@ Thread.new do
             end
         end
         
-        # TODO: info packets
         if success == true
             session.print "HTTP/1.1 200 OK\r\n"
             session.print "Server: blessing/Itsudemo\r\n"
@@ -105,6 +101,7 @@ config["streams"].each do |stream|
     stream_config = "#{config["stream_config_location"]}#{stream["name"]}.json"
     puts stream_config
     Thread.new do
+        # TODO: implement this differently to change playlist on the go
         track_list = []
         while true do
             track_list = JSON.parse(File.read(stream_config)) if track_list.length == 0
