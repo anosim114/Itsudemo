@@ -81,6 +81,11 @@ Thread.new do
         
         # TODO: info packets
         if success == true
+            session.print "HTTP/1.1 404 NOT FOUND\r\n"
+            session.print "Server: blessing/vItsudemo\r\n"
+            session.print "Content-Type: audio/ogg\r\n"
+            
+            session.print "\r\n"
             @conn["#{stream}_packets"].each do |p|
                 session.print p
             end
