@@ -11,7 +11,7 @@ config = JSON.parse(config_raw)
 
 # fist stream is default
 config["streams"].each do |s|
-    @conn[s["name"]] = []
+    @conn[s["config"]] = []
 end
 
 # start server on port
@@ -110,7 +110,7 @@ config["streams"].each do |stream|
         while true do
             track_list = JSON.parse(File.read(stream_config)) if track_list.length == 0
             name = track_list.delete_at(0)
-            file_location = "#{config["music_location"]}/#{name}"
+            file_location = "#{stream["music_location"]}/#{name}"
 
             file_size = File.size(file_location)
             file = File.read(file_location, file_size)
@@ -155,6 +155,7 @@ config["streams"].each do |stream|
                                 puts "session errored"
                                 s.close
                                 @conn[stream["name"]].delete(s)
+                                puts "active streams:s #{@conn[stream["name"]].length}"
                             end
                         end
                     end
