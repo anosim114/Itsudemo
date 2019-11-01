@@ -1,3 +1,9 @@
 paste your music into this folder
 
 just ogg files please
+
+ffmpeg command to convert flac to ogg vorbis:
+ffmpeg -i example.flac -c:a libvorbis -q:a 5 out.ogg
+
+youtube-dl command for downloading ogg vorbis:
+youtube-dl  -f bestaudio -x --audio-format vorbis --audio-quality 5 -o "%(title)s.%(ext)s" <url>
