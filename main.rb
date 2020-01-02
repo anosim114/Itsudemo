@@ -7,19 +7,21 @@ config_raw = File.read("config.json")
 config = JSON.parse(config_raw)
 
 @conn = {}
+@stream_format = {}
 @default = config["default"]
-
 # fist stream is default
 config["streams"].each do |s|
     @conn[s["config"]] = []
+    @stream_format[s["name"]] = s["format"]
 end
 
 # start server on port
 puts "starting server on port: #{config["port"]}"
 server = TCPServer.new("0.0.0.0", config["port"])
 
+# TODO: rework this whole thing
 Thread.new do
-    while session = server.accept do
+    while session = server.accept
         begin
             # Note: set 'success' to true, if a stream for req was found
             # else I will send 404
@@ -75,11 +77,19 @@ Thread.new do
             if success == true
                 session.print "HTTP/1.1 200 OK\r\n"
                 session.print "Server: blessing/Itsudemo\r\n"
-                session.print "Content-Type: audio/ogg\r\n"
+                
+                # check format of stream (ogg or mp3)
+                if @stream_format[stream] == "mp3"
+                    session.print "Content-Type: audio/mpeg\r\n"
+                else
+                    session.print "Content-Type: audio/ogg\r\n"
+                end
                 
                 session.print "\r\n"
-                @conn["#{stream}_packets"].each do |p|
-                    session.print p
+                if @stream_format[stream] == "ogg"
+                    @conn["#{stream}_packets"].each do |p|
+                        session.print p
+                    end
                 end
 
                 next
