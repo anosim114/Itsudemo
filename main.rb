@@ -3,6 +3,13 @@ require "uri"
 require "socket"
 
 require_relative "mp3/mp3_utils"
+require_relative "ogg/oggUtils"
+
+class Array
+    def sum
+        inject(0) { |sum, x| sum + x }
+    end
+end
 
 config_raw = File.read("config.json")
 
@@ -119,45 +126,81 @@ config["streams"].each do |stream|
 
             # TODO add option in config how to choose new track
             # start new random track
-            puts "new track: #{rand_track}"
             name = track_list.delete_at(rand_track)
-
+            
+            puts "#{Time.now}: new track: #{name}"
+            
             file_location = "#{stream["music_location"]}/#{name}"
+            
+            open(file_location) do |file|
+                # default: sleep 1 second
+                sleep_time = 1
 
-            frame_info = mp3_first_frame(file_location)
-
-            if @stream_format[stream["name"]] == "mp3"
-                open(file_location) do |file|
+                # prepare ogg and mp3
+                if @stream_format[stream["name"]] == "ogg"
+                    packages = ogg_frames(file)
+                    packages << 20000
                     
-
-                    file.pos = frame_info[:start]
-                    buffer_size = (frame_info[:length] + 4) * 42
-
-                    # fist buffer is a little bit bigger
-                    buffer = file.read(buffer_size)
-                    while buffer != nil
-                        # idle if no connections
-                        while @conn[stream["name"]].length == 0
-                            sleep 0.2
-                        end
-
+                    # get info packets every new stream needs
+                    @conn["#{stream["name"]}_packets"] = [
+                        file.read(packages.delete_at(0)),
+                        file.read(packages.delete_at(0))
+                    ]
+        
+                    # send info packets
+                    @conn["#{stream["name"]}_packets"].each do |buffer|
                         @conn[stream["name"]].each do |s|
-                            Thread.new do
-                                begin
-                                    # send buffer to alive connection
-                                    s.print buffer
-                                rescue
-                                    # catch thrown exceptoion 
-                                    # most likely, broken pipe exception
-                                    s.close
-                                    @conn[stream["name"]].delete(s)
-                                    puts "active streams:s #{@conn[stream["name"]].length}"
-                                end
+                            s.print buffer
+                        end
+                    end
+
+                    buffer_size = (packages.slice! 0, 2).sum
+
+                elsif @stream_format[stream["name"]] == "mp3"
+                    info = mp3_frames(file)
+
+                    read_frames = 50
+                    sleep_time = read_frames * 0.024    
+                    # first buffer is 2s
+                    # buffer_size = packages[:frames][0..(read_frames * 2)].sum
+                    # packages[:frames].slice!(0, read_frames * 2)
+                    buffer_size = info[:bitrate] / 8
+                end
+
+                # fist buffer is a little bit bigger
+                buffer = file.read( buffer_size )
+                while buffer != nil
+                    # idle if no connections
+                    while @conn[stream["name"]].length == 0
+                        sleep 0.2
+                    end
+
+                    @conn[stream["name"]].each do |s|
+                        Thread.new do
+                            begin
+                                # send buffer to alive connection
+                                s.print buffer
+                            rescue
+                                # catch thrown exceptoion 
+                                # most likely, broken pipe exception
+                                s.close
+                                @conn[stream["name"]].delete(s)
+                                puts "#{stream["name"]} active #{@conn[stream["name"]].length}"
                             end
                         end
-                        sleep 1
-                        buffer = file.read(buffer_size)
                     end
+                    sleep 1
+
+                    # mp3, ogg
+                    if @stream_format[stream["name"]] == "ogg"
+                        buffer_size = packages.delete_at(0) || 20000
+
+                    elsif @stream_format[stream["name"]] == "mp3"
+                        # packages[:frames][0..(read_frames)].sum
+                        # packages[:frames].slice!(0, read_frames)
+                    end
+
+                    buffer = file.read( buffer_size )
                 end
             end
         end
