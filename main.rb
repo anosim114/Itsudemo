@@ -2,6 +2,8 @@ require "json"
 require "uri"
 require "socket"
 
+require_relative "mp3/mp3_utils"
+
 config_raw = File.read("config.json")
 
 config = JSON.parse(config_raw)
@@ -113,16 +115,28 @@ config["streams"].each do |stream|
         track_list = []
         while true
             track_list = JSON.parse(File.read(stream_config)) if track_list.length == 0
-            name = track_list.delete_at(0)
+            rand_track = rand(track_list.length)
+
+            # TODO add option in config how to choose new track
+            # start new random track
+            puts "new track: #{rand_track}"
+            name = track_list.delete_at(rand_track)
+
             file_location = "#{stream["music_location"]}/#{name}"
 
-            # TODO: implement controller here
+            frame_info = mp3_first_frame(file_location)
 
             if @stream_format[stream["name"]] == "mp3"
                 open(file_location) do |file|
-                    while (buffer = file.read((1024 * 20) * 3)) != nil
+                    
 
-                        # TODO: don't read a buffer iv no one is lisening, rather skip _x_ bytes in file position
+                    file.pos = frame_info[:start]
+                    buffer_size = (frame_info[:length] + 4) * 42
+
+                    # fist buffer is a little bit bigger
+                    buffer = file.read(buffer_size)
+                    while buffer != nil
+                        # idle if no connections
                         while @conn[stream["name"]].length == 0
                             sleep 0.2
                         end
@@ -141,7 +155,8 @@ config["streams"].each do |stream|
                                 end
                             end
                         end
-                        sleep(3)
+                        sleep 1
+                        buffer = file.read(buffer_size)
                     end
                 end
             end
