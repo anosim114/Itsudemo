@@ -7,12 +7,16 @@
     "default": "default_stream",
     "streams": [
         {
-            "name": "default_stream",
-            "config": "piano"
+            "name": "all",
+            "config": "all",
+            "format": "mp3",
+            "music_location": "A:\\Music\\Radio"
         },
         {
-            "name": "harp",
-            "config": "harp"
+            "name": "ogg",
+            "config": "ogg",
+            "format": "ogg",
+            "music_location": "A:\\Music\\ogg"
         }
     ]
 }
